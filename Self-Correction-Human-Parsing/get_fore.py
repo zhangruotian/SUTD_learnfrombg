@@ -3,9 +3,9 @@ import cv2
 import argparse
 from tqdm import tqdm
 parser = argparse.ArgumentParser(description="Get the background of the original images")
-parser.add_argument('--image_folder_path', type=str, default='example3/query',help='Path to image')
-parser.add_argument('--masks_folder_path', type=str, default='example3/query_bg',help='Path to mask')
-parser.add_argument('--bg_folder_path', type=str, default='example3/query_background',help='Path to the foreground of image')
+parser.add_argument('--image_folder_path', type=str, default='example3/bounding_box_train',help='Path to image')
+parser.add_argument('--masks_folder_path', type=str, default='example3/bounding_box_train_bg',help='Path to mask')
+parser.add_argument('--bg_folder_path', type=str, default='example3/bounding_box_train_background',help='Path to the foreground of image')
 
 args = parser.parse_args()
 image_list=os.listdir(args.image_folder_path)

@@ -58,8 +58,8 @@ def get_arguments():
     parser.add_argument("--dataset", type=str, default='lip', choices=['lip', 'atr', 'pascal'])
     parser.add_argument("--model-restore", type=str, default='checkpoints/lip.pth', help="restore pretrained model parameters.")
     parser.add_argument("--gpu", type=str, default='0', help="choose gpu device.")
-    parser.add_argument("--input-dir", type=str, default='example3/query', help="path of input image folder.")
-    parser.add_argument("--output-dir", type=str, default='example3/query_bg', help="path of output image folder.")
+    parser.add_argument("--input-dir", type=str, default='example3/bounding_box_test', help="path of input image folder.")
+    parser.add_argument("--output-dir", type=str, default='example3/bounding_box_test_bg', help="path of output image folder.")
     parser.add_argument("--logits", action='store_true', default=False, help="whether to save the logits.")
 
     return parser.parse_args()
@@ -145,35 +145,10 @@ def main():
             parsing_result[parsing_result == 0] = 100
             for i in range(1,20):
                 parsing_result[parsing_result == i] = 0
-            # parsing_result[parsing_result == 1] = 0
-            # parsing_result[parsing_result == 2] = 0
-            # parsing_result[parsing_result == 4] = 0
-            # parsing_result[parsing_result == 13] =0
-            # parsing_result[parsing_result == 3] = 0
-            # parsing_result[parsing_result == 5] = 0
-            # parsing_result[parsing_result == 6] = 0
-            # parsing_result[parsing_result == 7] = 0
-            # parsing_result[parsing_result == 10] =0
-            # parsing_result[parsing_result == 11] =0
-            # parsing_result[parsing_result == 14] =0
-            # parsing_result[parsing_result == 15] =0
-            # parsing_result[parsing_result == 8] = 0
-            # parsing_result[parsing_result == 9] = 0
-            # parsing_result[parsing_result == 12] =0
-            # parsing_result[parsing_result == 16] =0
-            # parsing_result[parsing_result == 17] =0
-            # parsing_result[parsing_result == 18] =0
-            # parsing_result[parsing_result == 19] =0
             parsing_result[parsing_result == 100] = 1
             parsing_result_path = os.path.join(args.output_dir, img_name[:-4] + '.png')
-            # output_img = Image.fromarray(np.asarray(parsing_result, dtype=np.uint8))
-            # output_img.putpalette(palette)
-            # output_img.save(parsing_result_path)
             cv2.imwrite(parsing_result_path,parsing_result)
-    #         if args.logits:
-    #             logits_result_path = os.path.join(args.output_dir, img_name[:-4] + '.npy')
-    #             np.save(logits_result_path, logits_result)
-    # return
+
 
 
 if __name__ == '__main__':
