@@ -10,7 +10,7 @@ opt = parser.parse_args()
 name = opt.name
 # You only need to change this line to your dataset download path background
 #download_path = '/home/sunxx/project/a_data/background/'+name
-download_path = '../example5_fore_densenet'
+download_path = '../example3'
 
 if not os.path.isdir(download_path):
     print('please change the download_path')

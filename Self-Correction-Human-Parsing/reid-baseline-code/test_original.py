@@ -24,9 +24,9 @@ from model import ft_net, ft_net_dense
 parser = argparse.ArgumentParser(description='Training')
 parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
 parser.add_argument('--which_epoch',default='59', type=str, help='0,1,2,3...or last')
-parser.add_argument('--test_dir',default='/home/ruotian/segmentation/Single-Human-Parsing-LIP/example5_fore_densenet/pytorch',type=str, help='./test_data')
-parser.add_argument('--name', default='example5_fore_densenet', type=str, help='save model path')
-parser.add_argument('--cross', default='example5_fore_densenet.mat', type=str, help='corss testing')
+parser.add_argument('--test_dir',default='../example3/pytorch',type=str, help='./test_data')
+parser.add_argument('--name', default='ft_ResNet50', type=str, help='save model path')
+parser.add_argument('--cross', default='ft_ResNet50.mat', type=str, help='corss testing')
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
 parser.add_argument('--use_dense', action='store_true', help='use densenet121' )
 

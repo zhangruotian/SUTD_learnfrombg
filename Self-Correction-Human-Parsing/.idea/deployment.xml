@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData">
+    <serverData>
+      <paths name="ruotian@158.140.138.91:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/ruotian/SUTD_learnfrombg/Self-Correction-Human-Parsing" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath path="/home/ruotian/SUTD_learnfrombg/Self-Correction-Human-Parsing/example3" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="sutd">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="u7076906@partch.anu.edu.au:22">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="u7076906@partch.anu.edu.au:22 (1)">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+  </component>
+</project>
