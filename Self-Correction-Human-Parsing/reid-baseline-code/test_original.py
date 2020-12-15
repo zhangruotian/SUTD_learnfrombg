@@ -17,16 +17,16 @@ from torchvision import datasets, models, transforms
 import time
 import scipy.io
 from model import ft_net, ft_net_dense , two_stream_resnet
-
+import two_stream_dataset
 ######################################################################
 # Options
 # --------
 parser = argparse.ArgumentParser(description='Training')
 parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
-parser.add_argument('--which_epoch',default='59', type=str, help='0,1,2,3...or last')
+parser.add_argument('--which_epoch',default='39', type=str, help='0,1,2,3...or last')
 parser.add_argument('--test_dir',default='../example3_original/pytorch',type=str, help='./test_data')
-parser.add_argument('--name', default='original_image', type=str, help='save model path')
-parser.add_argument('--cross', default='original_image.mat', type=str, help='corss testing')
+parser.add_argument('--name', default='two_stream_resnet', type=str, help='save model path')
+parser.add_argument('--cross', default='two_stream_resnet.mat', type=str, help='corss testing')
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
 parser.add_argument('--use_dense', action='store_true', help='use densenet121' )
 parser.add_argument('--use_two_stream_resnet', action='store_true', help='use our two stream resnet' )
@@ -75,9 +75,11 @@ data_transforms = transforms.Compose([
 
 
 data_dir = test_dir
-image_datasets = {x: datasets.ImageFolder( os.path.join(data_dir,x) ,data_transforms) for x in ['gallery','query']}
+# image_datasets = {x: datasets.ImageFolder( os.path.join(data_dir,x) ,data_transforms) for x in ['gallery','query']}
+image_datasets = {x: two_stream_dataset.TwoStreamDataset(os.path.join(data_dir,x) ,data_transforms) for x in ['gallery','query']}
 dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=opt.batchsize,
                                              shuffle=False, num_workers=0) for x in ['gallery','query']}
+
 
 class_names = image_datasets['query'].classes
 use_gpu = torch.cuda.is_available()
