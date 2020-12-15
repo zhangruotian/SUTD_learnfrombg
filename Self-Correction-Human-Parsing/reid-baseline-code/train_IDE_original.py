@@ -17,9 +17,10 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import time
 import os
-from model import ft_net, ft_net_dense
+from model import ft_net, ft_net_dense , two_stream_resnet
 from random_erasing import RandomErasing
 import json
+import two_stream_dataset
 
 ######################################################################
 # Options
@@ -33,6 +34,8 @@ parser.add_argument('--color_jitter', action='store_true', help='use color jitte
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
 parser.add_argument('--erasing_p', default=0, type=float, help='Random Erasing probability, in [0,1]')
 parser.add_argument('--use_dense', action='store_true', help='use densenet121' )
+parser.add_argument('--use_two_stream_resnet', action='store_true', help='use our two stream resnet' )
+
 opt = parser.parse_args()
 
 data_dir = opt.data_dir
@@ -90,10 +93,16 @@ if opt.train_all:
      train_all = '_all'
 
 image_datasets = {}
-image_datasets['train'] = datasets.ImageFolder(os.path.join(data_dir, 'train' + train_all),
+# image_datasets['train'] = datasets.ImageFolder(os.path.join(data_dir, 'train' + train_all),
+#                                           data_transforms['train'])
+# image_datasets['val'] = datasets.ImageFolder(os.path.join(data_dir, 'val'),
+#                                           data_transforms['val'])
+
+image_datasets['train'] = two_stream_dataset.TwoStreamDataset(os.path.join(data_dir, 'train' + train_all),
                                           data_transforms['train'])
-image_datasets['val'] = datasets.ImageFolder(os.path.join(data_dir, 'val'),
+image_datasets['val'] = two_stream_dataset.TwoStreamDataset(os.path.join(data_dir, 'val'),
                                           data_transforms['val'])
+
 
 dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=opt.batchsize,
                                              shuffle=True, num_workers=0)
@@ -149,20 +158,21 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
             # Iterate over data.
             for data in dataloaders[phase]:
                 # get the inputs
-                inputs, labels = data
+                (inputs1,inputs2), labels = data
                 #print(inputs.shape)
                 # wrap them in Variable
                 if use_gpu:
-                    inputs = Variable(inputs.cuda())
+                    inputs1 = Variable(inputs1.cuda())
+                    inputs2 = Variable(inputs1.cuda())
                     labels = Variable(labels.cuda())
                 else:
-                    inputs, labels = Variable(inputs), Variable(labels)
+                    inputs1,inputs2, labels = Variable(inputs1),Variable(inputs2), Variable(labels)
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
                 # forward
-                outputs = model(inputs)
+                outputs = model(inputs1,inputs2)
                 _, preds = torch.max(outputs.data, 1)
                 loss = criterion(outputs, labels)
 
@@ -240,6 +250,8 @@ def save_network(network, epoch_label):
 
 if opt.use_dense:
     model = ft_net_dense(len(class_names))
+elif opt.use_two_stream_resnet:
+    model = two_stream_resnet(len(class_names))
 else:
     model = ft_net(len(class_names))
 print(model)
@@ -249,15 +261,25 @@ if use_gpu:
 
 criterion = nn.CrossEntropyLoss()
 
-ignored_params = list(map(id, model.model.fc.parameters() )) + list(map(id, model.classifier.parameters() ))
-base_params = filter(lambda p: id(p) not in ignored_params, model.parameters())
+if opt.use_two_stream_resnet:
+    ignored_params = list(map(id, model.classifier.parameters()))
+    base_params = filter(lambda p: id(p) not in ignored_params, model.parameters())
 
-# Observe that all parameters are being optimized
-optimizer_ft = optim.SGD([
-             {'params': base_params, 'lr': 0.01},
-             {'params': model.model.fc.parameters(), 'lr': 0.1},
-             {'params': model.classifier.parameters(), 'lr': 0.1}
-         ], momentum=0.9, weight_decay=5e-4, nesterov=True)
+    # Observe that all parameters are being optimized
+    optimizer_ft = optim.SGD([
+        {'params': base_params, 'lr': 0.01},
+        {'params': model.classifier.parameters(), 'lr': 0.1}
+    ], momentum=0.9, weight_decay=5e-4, nesterov=True)
+else:
+    ignored_params = list(map(id, model.model.fc.parameters() )) + list(map(id, model.classifier.parameters() ))
+    base_params = filter(lambda p: id(p) not in ignored_params, model.parameters())
+
+    # Observe that all parameters are being optimized
+    optimizer_ft = optim.SGD([
+                 {'params': base_params, 'lr': 0.01},
+                 {'params': model.model.fc.parameters(), 'lr': 0.1},
+                 {'params': model.classifier.parameters(), 'lr': 0.1}
+             ], momentum=0.9, weight_decay=5e-4, nesterov=True)
 
 # Decay LR by a factor of 0.1 every 40 epochs
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=40, gamma=0.1)

@@ -16,7 +16,7 @@ import torchvision
 from torchvision import datasets, models, transforms
 import time
 import scipy.io
-from model import ft_net, ft_net_dense
+from model import ft_net, ft_net_dense , two_stream_resnet
 
 ######################################################################
 # Options
@@ -24,11 +24,12 @@ from model import ft_net, ft_net_dense
 parser = argparse.ArgumentParser(description='Training')
 parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
 parser.add_argument('--which_epoch',default='59', type=str, help='0,1,2,3...or last')
-parser.add_argument('--test_dir',default='../example3/pytorch',type=str, help='./test_data')
-parser.add_argument('--name', default='ft_ResNet50', type=str, help='save model path')
-parser.add_argument('--cross', default='ft_ResNet50.mat', type=str, help='corss testing')
+parser.add_argument('--test_dir',default='../example3_original/pytorch',type=str, help='./test_data')
+parser.add_argument('--name', default='original_image', type=str, help='save model path')
+parser.add_argument('--cross', default='original_image.mat', type=str, help='corss testing')
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
 parser.add_argument('--use_dense', action='store_true', help='use densenet121' )
+parser.add_argument('--use_two_stream_resnet', action='store_true', help='use our two stream resnet' )
 
 opt = parser.parse_args()
 
@@ -162,6 +163,8 @@ else:
 print('-------test-----------')
 if opt.use_dense:
     model_structure = ft_net_dense(nnn)
+elif opt.use_two_stream_resnet:
+    model_structure = two_stream_resnet(nnn)
 else:
     model_structure = ft_net(nnn)
 model = load_network(model_structure)
@@ -169,8 +172,11 @@ model = load_network(model_structure)
 #model.model.avgpool = nn.AdaptiveMaxPool2d((7,1))
 
 # Remove the final fc layer and classifier layer
-model.model.fc = nn.Sequential()
-model.classifier = nn.Sequential()
+if opt.use_two_stream_resnet:
+    model.classifier = nn.Sequential()
+else:
+    model.classifier.add_block = nn.Sequential()
+    model.classifier.classifier = nn.Sequential()
 
 # Change to test mode
 model = model.eval()
