@@ -24,9 +24,9 @@ import two_stream_dataset
 parser = argparse.ArgumentParser(description='Training')
 parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
 parser.add_argument('--which_epoch',default='39', type=str, help='0,1,2,3...or last')
-parser.add_argument('--test_dir',default='../example3_original/pytorch',type=str, help='./test_data')
-parser.add_argument('--name', default='two_stream_resnet', type=str, help='save model path')
-parser.add_argument('--cross', default='two_stream_resnet.mat', type=str, help='corss testing')
+parser.add_argument('--test_dir',default='../example3/pytorch',type=str, help='./test_data')
+parser.add_argument('--name', default='two_stream_resnet_4096', type=str, help='save model path')
+parser.add_argument('--cross', default='two_stream_resnet_4096.mat', type=str, help='corss testing')
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
 parser.add_argument('--use_dense', action='store_true', help='use densenet121' )
 parser.add_argument('--use_two_stream_resnet', action='store_true', help='use our two stream resnet' )
@@ -109,19 +109,23 @@ def extract_feature(model,dataloaders):
     features = torch.FloatTensor()
     count = 0
     for data in dataloaders:
-        img, label = data
-        n, c, h, w = img.size()
+        (img1,img2),label = data
+        n, c, h, w = img1.size()
         count += n
         print(count)
         if opt.use_dense:
             ff = torch.FloatTensor(n,1024).zero_()
+        if opt.use_two_stream_resnet:
+            ff = torch.FloatTensor(n, 4096).zero_()
         else:
             ff = torch.FloatTensor(n,2048).zero_()
         for i in range(2):
             if(i==1):
-                img = fliplr(img)
-            input_img = Variable(img.cuda())
-            outputs = model(input_img)
+                img1 = fliplr(img1)
+                img2 = fliplr(img2)
+            input_img1 = Variable(img1.cuda())
+            input_img2 = Variable(img2.cuda())
+            outputs = model(input_img1,input_img2)
             f = outputs.data.cpu()
             #print(f.size())
             ff = ff+f
@@ -134,7 +138,7 @@ def extract_feature(model,dataloaders):
 def get_id(img_path):
     camera_id = []
     labels = []
-    for path, v in img_path:
+    for path, *_ in img_path:
         filename = path.split('/')[-1]
         label = filename[0:4]
         camera = filename.split('c')[1]
@@ -176,6 +180,7 @@ model = load_network(model_structure)
 # Remove the final fc layer and classifier layer
 if opt.use_two_stream_resnet:
     model.classifier = nn.Sequential()
+    model.fc = nn.Sequential()
 else:
     model.classifier.add_block = nn.Sequential()
     model.classifier.classifier = nn.Sequential()

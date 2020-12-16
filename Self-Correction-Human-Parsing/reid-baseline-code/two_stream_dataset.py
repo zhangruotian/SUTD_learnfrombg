@@ -29,6 +29,7 @@ class TwoStreamDataset(Dataset):
         classes, class_to_idx = self._find_classes(self.dir)
         self.classes = classes
         self.class_to_idx = class_to_idx
+        self.imgs=self.examples
 
     def _find_classes(self, dir):
         classes = [d.name for d in os.scandir(dir) if d.is_dir()]

@@ -95,10 +95,10 @@ class two_stream_resnet(nn.Module):
         res2.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         self.model1 = res1
         self.model2 = res2
-        self.model1.fc = nn.Linear(2048, 1024)
-        self.model2.fc = nn.Linear(2048, 256)
-        self.fc = nn.Linear(in_features=1280, out_features=256)
-        self.classifier = nn.Linear(in_features=256, out_features=class_num)
+        self.model1.fc = nn.Sequential()
+        self.model2.fc = nn.Sequential()
+        self.fc = nn.Linear(in_features=4096, out_features=512)
+        self.classifier = nn.Linear(in_features=512, out_features=class_num)
     def forward(self,x1,x2):
         original_data_out=self.model1(x1)
         bg_data_out=self.model2(x2)
