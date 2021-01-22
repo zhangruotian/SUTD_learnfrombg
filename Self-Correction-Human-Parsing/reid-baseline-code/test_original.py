@@ -23,10 +23,10 @@ import two_stream_dataset
 # --------
 parser = argparse.ArgumentParser(description='Training')
 parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
-parser.add_argument('--which_epoch',default='39', type=str, help='0,1,2,3...or last')
-parser.add_argument('--test_dir',default='../example3/pytorch',type=str, help='./test_data')
-parser.add_argument('--name', default='two_stream_resnet_4096', type=str, help='save model path')
-parser.add_argument('--cross', default='two_stream_resnet_4096.mat', type=str, help='corss testing')
+parser.add_argument('--which_epoch',default='19', type=str, help='0,1,2,3...or last')
+parser.add_argument('--test_dir',default='../example3/pytorch_ori_and_bg_mask',type=str, help='./test_data')
+parser.add_argument('--name', default='two_stream_resnet_equal', type=str, help='save model path')
+parser.add_argument('--cross', default='two_stream_resnet_equal.mat', type=str, help='corss testing')
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
 parser.add_argument('--use_dense', action='store_true', help='use densenet121' )
 parser.add_argument('--use_two_stream_resnet', action='store_true', help='use our two stream resnet' )
@@ -60,23 +60,26 @@ data_transforms = transforms.Compose([
         transforms.Resize((256,128), interpolation=3),
         transforms.ToTensor(),
         #transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+if opt.use_two_stream_resnet:
+    transform_train_list = [
+        transforms.Resize((384,192), interpolation=3),
+        # transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-############### Ten Crop        
-        #transforms.TenCrop(224),
-        #transforms.Lambda(lambda crops: torch.stack(
-         #   [transforms.ToTensor()(crop) 
-          #      for crop in crops]
-           # )),
-        #transforms.Lambda(lambda crops: torch.stack(
-         #   [transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])(crop)
-          #       for crop in crops]
-          # ))
-])
-
+        ]
+    transform_bg_list=[
+        transforms.Resize((24,12),interpolation=3),
+        transforms.ToTensor()
+    ]
+    data_transforms = {
+        'train': transforms.Compose( transform_train_list ),
+        'bg': transforms.Compose(transform_bg_list),
+    }
 
 data_dir = test_dir
 # image_datasets = {x: datasets.ImageFolder( os.path.join(data_dir,x) ,data_transforms) for x in ['gallery','query']}
-image_datasets = {x: two_stream_dataset.TwoStreamDataset(os.path.join(data_dir,x) ,data_transforms) for x in ['gallery','query']}
+image_datasets = {x: two_stream_dataset.TwoStreamDataset(os.path.join(data_dir,x) ,data_transforms['train'],data_transforms['bg']) for x in ['gallery','query']}
 dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=opt.batchsize,
                                              shuffle=False, num_workers=0) for x in ['gallery','query']}
 
@@ -170,7 +173,7 @@ print('-------test-----------')
 if opt.use_dense:
     model_structure = ft_net_dense(nnn)
 elif opt.use_two_stream_resnet:
-    model_structure = two_stream_resnet(nnn)
+    model_structure = two_stream_resnet(nnn,True)
 else:
     model_structure = ft_net(nnn)
 model = load_network(model_structure)
@@ -178,12 +181,10 @@ model = load_network(model_structure)
 #model.model.avgpool = nn.AdaptiveMaxPool2d((7,1))
 
 # Remove the final fc layer and classifier layer
-if opt.use_two_stream_resnet:
-    model.classifier = nn.Sequential()
-    model.fc = nn.Sequential()
-else:
+if not opt.use_two_stream_resnet:
     model.classifier.add_block = nn.Sequential()
     model.classifier.classifier = nn.Sequential()
+
 
 # Change to test mode
 model = model.eval()

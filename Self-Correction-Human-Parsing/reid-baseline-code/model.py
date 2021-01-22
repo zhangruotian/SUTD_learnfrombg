@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.nn import init
 from torchvision import models
 from torch.autograd import Variable
+from torchvision.transforms import Resize
 
 ######################################################################
 def weights_init_kaiming(m):
@@ -86,26 +87,43 @@ class ft_net(nn.Module):
         x = self.classifier(x)
         return x
 
+
 class two_stream_resnet(nn.Module):
-    def __init__(self,class_num,droprate=0.5,stride=2):
-        super(two_stream_resnet, self).__init__()
-        res1 = models.resnet50(pretrained=True)
-        res1.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        res2 = models.resnet50(pretrained=True)
-        res2.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.model1 = res1
-        self.model2 = res2
-        self.model1.fc = nn.Sequential()
-        self.model2.fc = nn.Sequential()
-        self.fc = nn.Linear(in_features=4096, out_features=512)
-        self.classifier = nn.Linear(in_features=512, out_features=class_num)
-    def forward(self,x1,x2):
-        original_data_out=self.model1(x1)
-        bg_data_out=self.model2(x2)
-        z=torch.cat([original_data_out,bg_data_out],dim=1)
-        z=self.fc(z)
-        z=self.classifier(z)
-        return z
+    def __init__(self, class_num,test=False):
+        super().__init__()
+        self.test=test
+        model_ft = models.resnet50(pretrained=True)
+        self.model = model_ft
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.dropout = nn.Dropout(p=0.5)
+        # remove the final downsample
+        self.model.layer4[0].downsample[0].stride = (1, 1)
+        self.model.layer4[0].conv2.stride = (1, 1)
+        # define 2 classifiers
+        self.classifier_original= ClassBlock(2048, class_num, droprate=0.5, relu=False, bnorm=True, num_bottleneck=256)
+        self.classifier_bg = ClassBlock(2048, class_num, droprate=0.5, relu=False, bnorm=True, num_bottleneck=256)
+
+    def forward(self, x,x_bg):
+        x = self.model.conv1(x)
+        x = self.model.bn1(x)
+        x = self.model.relu(x)
+        x = self.model.maxpool(x)
+        x = self.model.layer1(x)
+        x = self.model.layer2(x)
+        x = self.model.layer3(x)
+        x = self.model.layer4(x)
+        bg_feature_map=x*x_bg
+        f = self.avgpool(x)
+        f_bg=self.avgpool(bg_feature_map)
+        f = self.dropout(f)
+        f_bg=self.dropout(f_bg)
+        if self.test==True:
+            return torch.cat((torch.squeeze(f),torch.squeeze(f_bg)),dim=1)
+        y = []
+        y.append(self.classifier_original(torch.squeeze(f)))
+        y.append(self.classifier_bg(torch.squeeze(f_bg)))
+        return y
+
 
 
 # Define the DenseNet121-based Model

@@ -17,4 +17,4 @@ def rename(path):
         os.rename(oldDirPath, newDirPath)
 
 if __name__ == '__main__':
-    rename('../example3/pytorch_background')
+    rename('../example3_bg_mask/pytorch_bg_mask')

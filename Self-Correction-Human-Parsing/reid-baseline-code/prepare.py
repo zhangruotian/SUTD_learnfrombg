@@ -10,7 +10,7 @@ opt = parser.parse_args()
 name = opt.name
 # You only need to change this line to your dataset download path background
 #download_path = '/home/sunxx/project/a_data/background/'+name
-download_path = '../example3_original'
+download_path = '../example3_bg_mask'
 
 if not os.path.isdir(download_path):
     print('please change the download_path')
@@ -20,7 +20,7 @@ if not os.path.isdir(save_path):
     os.mkdir(save_path)
 #-----------------------------------------
 #query
-query_path = download_path + '/query'
+query_path = download_path + '/query_bg_mask'
 query_save_path = download_path + '/pytorch/query'
 if not os.path.isdir(query_save_path):
     os.mkdir(query_save_path)
@@ -38,7 +38,7 @@ for root, dirs, files in os.walk(query_path, topdown=True):
 
 #-----------------------------------------
 #gallery
-gallery_path = download_path + '/bounding_box_test'
+gallery_path = download_path + '/bounding_box_test_bg_mask'
 gallery_save_path = download_path + '/pytorch/gallery'
 if not os.path.isdir(gallery_save_path):
     os.mkdir(gallery_save_path)
@@ -56,7 +56,7 @@ for root, dirs, files in os.walk(gallery_path, topdown=True):
 
 #---------------------------------------
 #train_all
-train_path = download_path + '/bounding_box_train'
+train_path = download_path + '/bounding_box_train_bg_mask'
 train_save_path = download_path + '/pytorch/train_all'
 if not os.path.isdir(train_save_path):
     os.mkdir(train_save_path)
@@ -75,7 +75,7 @@ for root, dirs, files in os.walk(train_path, topdown=True):
 
 #---------------------------------------
 #train_val
-train_path = download_path + '/bounding_box_train'
+train_path = download_path + '/bounding_box_train_bg_mask'
 train_save_path = download_path + '/pytorch/train'
 val_save_path = download_path + '/pytorch/val'
 if not os.path.isdir(train_save_path):

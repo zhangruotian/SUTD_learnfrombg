@@ -2,6 +2,8 @@ from torch.utils.data import Dataset
 import os
 import cv2
 from PIL import Image
+from torchvision import transforms
+import numpy as np
 '''
 two-stream dataloader
 
@@ -22,7 +24,7 @@ def get_example(dir):
 
 
 class TwoStreamDataset(Dataset):
-    def __init__(self,dir,transforms=None):
+    def __init__(self,dir,*transforms):
         self.dir=dir
         self.transforms=transforms
         self.examples=get_example(self.dir)
@@ -42,8 +44,9 @@ class TwoStreamDataset(Dataset):
         original_data=Image.open(original_name)
         bg_data=Image.open(name)
         if self.transforms:
-            original_data=self.transforms(original_data)
-            bg_data=self.transforms(bg_data)
+            original_data=self.transforms[0](original_data)
+            bg_data=self.transforms[1](bg_data)
+            bg_data[bg_data!=0]=1
         return (original_data,bg_data),self.class_to_idx[label]
 
 
@@ -51,6 +54,30 @@ class TwoStreamDataset(Dataset):
         return len(self.examples)
 
 if __name__ == '__main__':
-    data=TwoStreamDataset('../example3/pytorch/train')
-    print(len(data))
-    print(data[5])
+
+    transform_train_list = [
+        transforms.Resize((384,192), interpolation=3),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]
+    transform_bg_list=[
+        transforms.Resize((24,12),interpolation=3),
+        transforms.ToTensor()
+    ]
+    transform_val_list = [
+        transforms.Resize(size=(384,192),interpolation=3), #Image.BICUBIC
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]
+    data_transforms = {
+        'train': transforms.Compose(transform_train_list),
+        'bg': transforms.Compose(transform_bg_list),
+        'val': transforms.Compose(transform_val_list),
+    }
+    data = TwoStreamDataset('../example3/pytorch_ori_and_bg_mask/train',data_transforms['train'], data_transforms['bg'])
+    print(data[0][0][1])
+    b=np.array(data[0][0][1]*50000)
+    b=b.squeeze()
+
+    cv2.imwrite('b.png',b)

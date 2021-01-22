@@ -21,20 +21,22 @@ from model import ft_net, ft_net_dense , two_stream_resnet
 from random_erasing import RandomErasing
 import json
 import two_stream_dataset
+from PIL import Image
 
 ######################################################################
 # Options
 # --------
 parser = argparse.ArgumentParser(description='Training')
 parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
-parser.add_argument('--name',default='two_stream_resnet_4096', type=str, help='output model name')
-parser.add_argument('--data_dir',default='../example3/pytorch',type=str, help='training dir path')
+parser.add_argument('--name',default='two_stream_resnet_equal', type=str, help='output model name')
+parser.add_argument('--data_dir',default='../example3/pytorch_ori_and_bg_mask',type=str, help='training dir path')
 parser.add_argument('--train_all', action='store_true', help='use all training data' )
 parser.add_argument('--color_jitter', action='store_true', help='use color jitter in training' )
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
 parser.add_argument('--erasing_p', default=0, type=float, help='Random Erasing probability, in [0,1]')
 parser.add_argument('--use_dense', action='store_true', help='use densenet121' )
 parser.add_argument('--use_two_stream_resnet', action='store_true', help='use our two stream resnet' )
+parser.add_argument('--lr', default=0.05, type=float, help='learning rate')
 
 opt = parser.parse_args()
 
@@ -65,7 +67,27 @@ transform_train_list = [
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]
 
-
+transform_val_list = [
+        transforms.Resize(size=(256,128),interpolation=3), #Image.BICUBIC
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]
+if opt.use_two_stream_resnet:
+    transform_train_list = [
+        transforms.Resize((384,192), interpolation=3),
+        # transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]
+    transform_bg_list=[
+        transforms.Resize((24,12),interpolation=3),
+        transforms.ToTensor()
+    ]
+    transform_val_list = [
+        transforms.Resize(size=(384,192),interpolation=3), #Image.BICUBIC
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+        ]
 
 if opt.erasing_p>0:
     transform_train_list = transform_train_list + [RandomErasing(probability = opt.erasing_p, mean=[0.0, 0.0, 0.0])]
@@ -75,15 +97,9 @@ if opt.color_jitter:
 
 print(transform_train_list)
 
-transform_val_list = [
-        transforms.Resize(size=(256,128),interpolation=3), #Image.BICUBIC
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ]
-
-
 data_transforms = {
     'train': transforms.Compose( transform_train_list ),
+    'bg': transforms.Compose(transform_bg_list),
     'val': transforms.Compose(transform_val_list),
 }
 
@@ -99,9 +115,9 @@ image_datasets = {}
 #                                           data_transforms['val'])
 
 image_datasets['train'] = two_stream_dataset.TwoStreamDataset(os.path.join(data_dir, 'train' + train_all),
-                                          data_transforms['train'])
+                                          data_transforms['train'],data_transforms['bg'])
 image_datasets['val'] = two_stream_dataset.TwoStreamDataset(os.path.join(data_dir, 'val'),
-                                          data_transforms['val'])
+                                          data_transforms['val'],data_transforms['bg'])
 
 
 dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=opt.batchsize,
@@ -163,7 +179,7 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 # wrap them in Variable
                 if use_gpu:
                     inputs1 = Variable(inputs1.cuda())
-                    inputs2 = Variable(inputs1.cuda())
+                    inputs2 = Variable(inputs2.cuda())
                     labels = Variable(labels.cuda())
                 else:
                     inputs1,inputs2, labels = Variable(inputs1),Variable(inputs2), Variable(labels)
@@ -172,9 +188,23 @@ def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
                 optimizer.zero_grad()
 
                 # forward
-                outputs = model(inputs1,inputs2)
-                _, preds = torch.max(outputs.data, 1)
-                loss = criterion(outputs, labels)
+                outputs = model(inputs1, inputs2)
+                if not opt.use_two_stream_resnet:
+                    _, preds = torch.max(outputs.data, 1)
+                    loss = criterion(outputs, labels)
+                else:
+                    part = {}
+                    sm = nn.Softmax(dim=1)
+                    num_part = 2
+                    for i in range(num_part):
+                        part[i] = outputs[i]
+
+                    score = sm(part[0]) + sm(part[1])
+                    _, preds = torch.max(score.data, 1)
+
+                    loss = criterion(part[0], labels)
+                    for i in range(num_part - 1):
+                        loss += criterion(part[i + 1], labels)
 
                 # backward + optimize only if in training phase
                 if phase == 'train':
@@ -262,14 +292,18 @@ if use_gpu:
 criterion = nn.CrossEntropyLoss()
 
 if opt.use_two_stream_resnet:
-    ignored_params = list(map(id, model.classifier.parameters()))
+    ignored_params = list(map(id, model.model.fc.parameters()))
+    ignored_params += (list(map(id, model.classifier_original.parameters()))
+                       + list(map(id, model.classifier_bg.parameters()))
+                       )
     base_params = filter(lambda p: id(p) not in ignored_params, model.parameters())
-
-    # Observe that all parameters are being optimized
     optimizer_ft = optim.SGD([
-        {'params': base_params, 'lr': 0.01},
-        {'params': model.classifier.parameters(), 'lr': 0.1}
-    ], momentum=0.9, weight_decay=5e-4, nesterov=True)
+        {'params': base_params, 'lr': 0.1 * opt.lr},
+        {'params': model.model.fc.parameters(), 'lr': opt.lr},
+        {'params': model.classifier_original.parameters(), 'lr': opt.lr},
+        {'params': model.classifier_bg.parameters(), 'lr': opt.lr},
+
+    ], weight_decay=5e-4, momentum=0.9, nesterov=True)
 else:
     ignored_params = list(map(id, model.model.fc.parameters() )) + list(map(id, model.classifier.parameters() ))
     base_params = filter(lambda p: id(p) not in ignored_params, model.parameters())
