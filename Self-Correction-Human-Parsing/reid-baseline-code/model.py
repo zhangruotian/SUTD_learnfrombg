@@ -87,7 +87,7 @@ class ft_net(nn.Module):
         x = self.classifier(x)
         return x
 
-
+# Define the our two-stream model
 class two_stream_resnet(nn.Module):
     def __init__(self, class_num,test=False):
         super().__init__()
@@ -124,28 +124,9 @@ class two_stream_resnet(nn.Module):
         y.append(self.classifier_bg(torch.squeeze(f_bg)))
         return y
 
-
-
-# Define the DenseNet121-based Model
-class ft_net_dense(nn.Module):
-
-    def __init__(self, class_num, droprate=0.5):
-        super().__init__()
-        model_ft = models.densenet121(pretrained=True)
-        model_ft.features.avgpool = nn.AdaptiveAvgPool2d((1,1))
-        model_ft.fc = nn.Sequential()
-        self.model = model_ft
-        # For DenseNet, the feature dim is 1024
-        self.classifier = ClassBlock(1024, class_num, droprate)
-
-    def forward(self, x):
-        x = self.model.features(x)
-        x = x.view(x.size(0), x.size(1))
-        x = self.classifier(x)
-        return x
 if __name__=='__main__':
     # debug model structure
-    net = two_stream_resnet(751)
+    net = ft_net(751)
     # net = ft_net_dense(751)
     print(net)
     # input = Variable(torch.FloatTensor(8, 3, 224, 224))

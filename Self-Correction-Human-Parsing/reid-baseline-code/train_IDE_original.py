@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 import time
 import os
-from model import ft_net, ft_net_dense , two_stream_resnet
+from model import ft_net,  two_stream_resnet
 from random_erasing import RandomErasing
 import json
 import two_stream_dataset
@@ -34,7 +34,6 @@ parser.add_argument('--train_all', action='store_true', help='use all training d
 parser.add_argument('--color_jitter', action='store_true', help='use color jitter in training' )
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
 parser.add_argument('--erasing_p', default=0, type=float, help='Random Erasing probability, in [0,1]')
-parser.add_argument('--use_dense', action='store_true', help='use densenet121' )
 parser.add_argument('--use_two_stream_resnet', action='store_true', help='use our two stream resnet' )
 parser.add_argument('--lr', default=0.05, type=float, help='learning rate')
 
@@ -58,20 +57,6 @@ if len(gpu_ids)>0:
 # Load Data
 # ---------
 #
-transform_train_list = [
-        #transforms.RandomResizedCrop(size=128, scale=(0.75,1.0), ratio=(0.75,1.3333), interpolation=3), #Image.BICUBIC)
-        transforms.Resize((288,144), interpolation=3),
-        transforms.RandomCrop((256,128)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ]
-
-transform_val_list = [
-        transforms.Resize(size=(256,128),interpolation=3), #Image.BICUBIC
-        transforms.ToTensor(),
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
-        ]
 if opt.use_two_stream_resnet:
     transform_train_list = [
         transforms.Resize((384,192), interpolation=3),
@@ -88,6 +73,19 @@ if opt.use_two_stream_resnet:
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]
+else:
+    transform_train_list = [
+        transforms.Resize((256, 128), interpolation=3),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ]
+
+    transform_val_list = [
+        transforms.Resize(size=(256, 128), interpolation=3),  # Image.BICUBIC
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+    ]
+
 
 if opt.erasing_p>0:
     transform_train_list = transform_train_list + [RandomErasing(probability = opt.erasing_p, mean=[0.0, 0.0, 0.0])]
@@ -97,27 +95,35 @@ if opt.color_jitter:
 
 print(transform_train_list)
 
-data_transforms = {
-    'train': transforms.Compose( transform_train_list ),
-    'bg': transforms.Compose(transform_bg_list),
-    'val': transforms.Compose(transform_val_list),
-}
 
+if opt.use_two_stream_resnet:
+    data_transforms = {
+        'train': transforms.Compose( transform_train_list ),
+        'bg': transforms.Compose(transform_bg_list),
+        'val': transforms.Compose(transform_val_list),
+    }
+else:
+    data_transforms = {
+        'train': transforms.Compose(transform_train_list),
+        'val': transforms.Compose(transform_val_list),
+    }
 
 train_all = ''
 if opt.train_all:
      train_all = '_all'
 
 image_datasets = {}
-# image_datasets['train'] = datasets.ImageFolder(os.path.join(data_dir, 'train' + train_all),
-#                                           data_transforms['train'])
-# image_datasets['val'] = datasets.ImageFolder(os.path.join(data_dir, 'val'),
-#                                           data_transforms['val'])
 
-image_datasets['train'] = two_stream_dataset.TwoStreamDataset(os.path.join(data_dir, 'train' + train_all),
-                                          data_transforms['train'],data_transforms['bg'])
-image_datasets['val'] = two_stream_dataset.TwoStreamDataset(os.path.join(data_dir, 'val'),
-                                          data_transforms['val'],data_transforms['bg'])
+if opt.use_two_stream_resnet:
+    image_datasets['train'] = two_stream_dataset.TwoStreamDataset(os.path.join(data_dir, 'train' + train_all),
+                                              data_transforms['train'],data_transforms['bg'])
+    image_datasets['val'] = two_stream_dataset.TwoStreamDataset(os.path.join(data_dir, 'val'),
+                                              data_transforms['val'],data_transforms['bg'])
+else:
+    image_datasets['train'] = datasets.ImageFolder(os.path.join(data_dir, 'train' + train_all),
+                                                   data_transforms['train'])
+    image_datasets['val'] = datasets.ImageFolder(os.path.join(data_dir, 'val'),
+                                                 data_transforms['val'])
 
 
 dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=opt.batchsize,
@@ -151,6 +157,82 @@ y_err['train'] = []
 y_err['val'] = []
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs=25):
+    since = time.time()
+
+    best_model_wts = model.state_dict()
+    best_acc = 0.0
+
+    for epoch in range(num_epochs):
+        print('Epoch {}/{}'.format(epoch, num_epochs - 1))
+        print('-' * 10)
+
+        # Each epoch has a training and validation phase
+        for phase in ['train', 'val']:
+            if phase == 'train':
+                scheduler.step()
+                model.train(True)  # Set model to training mode
+            else:
+                model.train(False)  # Set model to evaluate mode
+
+            running_loss = 0.0
+            running_corrects = 0
+
+            # Iterate over data.
+            for data in dataloaders[phase]:
+                # get the inputs
+                inputs, labels = data
+                #print(inputs.shape)
+                # wrap them in Variable
+                if use_gpu:
+                    inputs = Variable(inputs.cuda())
+                    labels = Variable(labels.cuda())
+                else:
+                    inputs, labels = Variable(inputs), Variable(labels)
+
+                # zero the parameter gradients
+                optimizer.zero_grad()
+
+                # forward
+                outputs = model(inputs)
+                _, preds = torch.max(outputs.data, 1)
+                loss = criterion(outputs, labels)
+
+                # backward + optimize only if in training phase
+                if phase == 'train':
+                    loss.backward()
+                    optimizer.step()
+
+                # statistics
+                running_loss += loss.item()
+                running_corrects += float(torch.sum(preds == labels.data))
+
+            epoch_loss = running_loss / dataset_sizes[phase]
+            epoch_acc = running_corrects / dataset_sizes[phase]
+
+            print('{} Loss: {:.4f} Acc: {:.4f}'.format(
+                phase, epoch_loss, epoch_acc))
+            y_loss[phase].append(epoch_loss)
+            y_err[phase].append(1.0-epoch_acc)
+            # deep copy the model
+            if phase == 'val':
+                last_model_wts = model.state_dict()
+                if epoch%10 == 9:
+                    save_network(model, epoch)
+                draw_curve(epoch)
+
+        print()
+
+    time_elapsed = time.time() - since
+    print('Training complete in {:.0f}m {:.0f}s'.format(
+        time_elapsed // 60, time_elapsed % 60))
+    #print('Best val Acc: {:4f}'.format(best_acc))
+
+    # load best model weights
+    model.load_state_dict(last_model_wts)
+    save_network(model, 'last')
+    return model
+
+def train_model_two_stream(model, criterion, optimizer, scheduler, num_epochs=25):
     since = time.time()
 
     best_model_wts = model.state_dict()
@@ -278,9 +360,8 @@ def save_network(network, epoch_label):
 # Load a pretrainied model and reset final fully connected layer.
 #
 
-if opt.use_dense:
-    model = ft_net_dense(len(class_names))
-elif opt.use_two_stream_resnet:
+
+if opt.use_two_stream_resnet:
     model = two_stream_resnet(len(class_names))
 else:
     model = ft_net(len(class_names))
@@ -322,7 +403,7 @@ exp_lr_scheduler = lr_scheduler.StepLR(optimizer_ft, step_size=40, gamma=0.1)
 # Train and evaluate
 # ^^^^^^^^^^^^^^^^^^
 #
-# It should take around 1-2 hours on GPU. 
+# It should take around 0.5 hours on GPU.
 #
 dir_name = os.path.join('./model_test',name)
 if not os.path.isdir(dir_name):
@@ -332,6 +413,10 @@ if not os.path.isdir(dir_name):
 with open('%s/opts.json'%dir_name,'w') as fp:
     json.dump(vars(opt), fp, indent=1)
 
-model = train_model(model, criterion, optimizer_ft, exp_lr_scheduler,
-                       num_epochs=60)
 
+if opt.use_two_stream_resnet:
+    model = train_model_two_stream(model, criterion, optimizer_ft, exp_lr_scheduler,
+                           num_epochs=60)
+else:
+    model = train_model(model, criterion, optimizer_ft, exp_lr_scheduler,
+                                   num_epochs=60)

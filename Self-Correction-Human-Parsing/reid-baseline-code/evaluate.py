@@ -9,9 +9,9 @@ import logging
 import os.path as osp
 
 parser = argparse.ArgumentParser(description='Evaluate')
-parser.add_argument('--name', default='two_stream_resnet_4096', type=str, help='save model path')
-parser.add_argument('--cross', default='two_stream_resnet_4096.mat', type=str, help='corss testing')
-parser.add_argument('--logs_dir', type=str, metavar='PATH', default='log/ft_ResNet50.txt')
+parser.add_argument('--name', default='two_stream_resnet_equal', type=str, help='save model path')
+parser.add_argument('--cross', default='two_stream_resnet_equal.mat', type=str, help='corss testing')
+parser.add_argument('--logs_dir', type=str, metavar='PATH', default='log/two_stream_resnet_equal.txt')
 opt = parser.parse_args()
 #which_epoch = opt.which_epoch
 name = opt.name
@@ -161,4 +161,4 @@ print(name,cross)
 logger = logger_config(log_path=logs_dir, logging_name='evaluate_log')
 logger.info('train on %s'%(name))
 logger.info('test on %s'%(cross))
-logger.info('original_top1:%f top5:%f top10:%f mAP:%f'%(CMC[0],CMC[4],CMC[9],ap/len(query_label)))
+logger.info('top1:%f top5:%f top10:%f mAP:%f'%(CMC[0],CMC[4],CMC[9],ap/len(query_label)))

@@ -16,7 +16,7 @@ import torchvision
 from torchvision import datasets, models, transforms
 import time
 import scipy.io
-from model import ft_net, ft_net_dense , two_stream_resnet
+from model import ft_net, two_stream_resnet
 import two_stream_dataset
 ######################################################################
 # Options
@@ -28,7 +28,6 @@ parser.add_argument('--test_dir',default='../example3/pytorch_ori_and_bg_mask',t
 parser.add_argument('--name', default='two_stream_resnet_equal', type=str, help='save model path')
 parser.add_argument('--cross', default='two_stream_resnet_equal.mat', type=str, help='corss testing')
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
-parser.add_argument('--use_dense', action='store_true', help='use densenet121' )
 parser.add_argument('--use_two_stream_resnet', action='store_true', help='use our two stream resnet' )
 
 opt = parser.parse_args()
@@ -55,12 +54,7 @@ if len(gpu_ids)>0:
 #
 # We will use torchvision and torch.utils.data packages for loading the
 # data.
-#
-data_transforms = transforms.Compose([
-        transforms.Resize((256,128), interpolation=3),
-        transforms.ToTensor(),
-        #transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
-        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
+
 if opt.use_two_stream_resnet:
     transform_train_list = [
         transforms.Resize((384,192), interpolation=3),
@@ -76,13 +70,20 @@ if opt.use_two_stream_resnet:
         'train': transforms.Compose( transform_train_list ),
         'bg': transforms.Compose(transform_bg_list),
     }
+else:
+    data_transforms = transforms.Compose([
+        transforms.Resize((256, 128), interpolation=3),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
 data_dir = test_dir
-# image_datasets = {x: datasets.ImageFolder( os.path.join(data_dir,x) ,data_transforms) for x in ['gallery','query']}
-image_datasets = {x: two_stream_dataset.TwoStreamDataset(os.path.join(data_dir,x) ,data_transforms['train'],data_transforms['bg']) for x in ['gallery','query']}
-dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=opt.batchsize,
-                                             shuffle=False, num_workers=0) for x in ['gallery','query']}
+if opt.use_two_stream_resnet:
+    image_datasets = {x: two_stream_dataset.TwoStreamDataset(os.path.join(data_dir,x) ,data_transforms['train'],data_transforms['bg']) for x in ['gallery','query']}
 
+else:
+    image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x), data_transforms) for x in ['gallery', 'query']}
+dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=opt.batchsize,
+                                                 shuffle=False, num_workers=0) for x in ['gallery','query']}
 
 class_names = image_datasets['query'].classes
 use_gpu = torch.cuda.is_available()
@@ -112,16 +113,34 @@ def extract_feature(model,dataloaders):
     features = torch.FloatTensor()
     count = 0
     for data in dataloaders:
+        img, label = data
+        n, c, h, w = img.size()
+        count += n
+        print(count)
+        ff = torch.FloatTensor(n,2048).zero_()
+        for i in range(2):
+            if(i==1):
+                img = fliplr(img)
+            input_img = Variable(img.cuda())
+            outputs = model(input_img)
+            f = outputs.data.cpu()
+            #print(f.size())
+            ff = ff+f
+        # norm feature
+        fnorm = torch.norm(ff, p=2, dim=1, keepdim=True)
+        ff = ff.div(fnorm.expand_as(ff))
+        features = torch.cat((features,ff), 0)
+    return features
+
+def extract_feature_two_stream(model,dataloaders):
+    features = torch.FloatTensor()
+    count = 0
+    for data in dataloaders:
         (img1,img2),label = data
         n, c, h, w = img1.size()
         count += n
         print(count)
-        if opt.use_dense:
-            ff = torch.FloatTensor(n,1024).zero_()
-        if opt.use_two_stream_resnet:
-            ff = torch.FloatTensor(n, 4096).zero_()
-        else:
-            ff = torch.FloatTensor(n,2048).zero_()
+        ff = torch.FloatTensor(n, 4096).zero_()
         for i in range(2):
             if(i==1):
                 img1 = fliplr(img1)
@@ -170,9 +189,8 @@ else:
    nnn=50
 # duke-market 702
 print('-------test-----------')
-if opt.use_dense:
-    model_structure = ft_net_dense(nnn)
-elif opt.use_two_stream_resnet:
+
+if opt.use_two_stream_resnet:
     model_structure = two_stream_resnet(nnn,True)
 else:
     model_structure = ft_net(nnn)
@@ -182,8 +200,8 @@ model = load_network(model_structure)
 
 # Remove the final fc layer and classifier layer
 if not opt.use_two_stream_resnet:
-    model.classifier.add_block = nn.Sequential()
-    model.classifier.classifier = nn.Sequential()
+    model.classifier.fc = nn.Sequential()
+    model.classifier = nn.Sequential()
 
 
 # Change to test mode
@@ -192,8 +210,13 @@ if use_gpu:
     model = model.cuda()
 
 # Extract feature
-gallery_feature = extract_feature(model,dataloaders['gallery'])
-query_feature = extract_feature(model,dataloaders['query'])
+if opt.use_two_stream_resnet:
+    gallery_feature = extract_feature_two_stream(model,dataloaders['gallery'])
+    query_feature = extract_feature_two_stream(model,dataloaders['query'])
+else:
+    gallery_feature = extract_feature(model, dataloaders['gallery'])
+    query_feature = extract_feature(model, dataloaders['query'])
+
 
 # Save to Matlab for check
 result = {'gallery_f':gallery_feature.numpy(),'gallery_label':gallery_label,'gallery_cam':gallery_cam,'query_f':query_feature.numpy(),'query_label':query_label,'query_cam':query_cam}
