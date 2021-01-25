@@ -16,7 +16,10 @@ def get_example(dir):
             if name.find('bg') != -1:
                 file_name, file_type = os.path.splitext(name)
                 original_name = file_name[0:-3] + file_type
-                label = name[0:4]
+                if file_name[0]=='-':
+                    label=name[0:2]
+                else:
+                    label = name[0:4]
                 full_bg_name=os.path.join(root,name)
                 full_original_name=os.path.join(root,original_name)
                 samples.append((full_original_name, full_bg_name, label))

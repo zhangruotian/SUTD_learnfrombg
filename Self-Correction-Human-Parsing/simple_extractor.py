@@ -58,8 +58,8 @@ def get_arguments():
     parser.add_argument("--dataset", type=str, default='lip', choices=['lip', 'atr', 'pascal'])
     parser.add_argument("--model-restore", type=str, default='checkpoints/lip.pth', help="restore pretrained model parameters.")
     parser.add_argument("--gpu", type=str, default='0', help="choose gpu device.")
-    parser.add_argument("--input-dir", type=str, default='example3/query', help="path of input image folder.")
-    parser.add_argument("--output-dir", type=str, default='example3/query_bg_mask', help="path of output image folder.")
+    parser.add_argument("--input-dir", type=str, default='market/bounding_box_test', help="path of input image folder.")
+    parser.add_argument("--output-dir", type=str, default='market_bg_mask/bounding_box_test_bg_mask', help="path of output image folder.")
     parser.add_argument("--logits", action='store_true', default=False, help="whether to save the logits.")
 
     return parser.parse_args()
@@ -129,6 +129,7 @@ def main():
         for idx, batch in enumerate(tqdm(dataloader)):
             image, meta = batch
             img_name = meta['name'][0]
+            file_name,type=os.path.splitext(img_name)
             c = meta['center'].numpy()[0]
             s = meta['scale'].numpy()[0]
             w = meta['width'].numpy()[0]
@@ -146,8 +147,9 @@ def main():
             for i in range(1,20):
                 parsing_result[parsing_result == i] = 0
             parsing_result[parsing_result == 100] = 1
-            parsing_result_path = os.path.join(args.output_dir, img_name[:-4] + '.png')
+            parsing_result_path = os.path.join(args.output_dir, file_name+type)
             cv2.imwrite(parsing_result_path,parsing_result)
+
 
 
 

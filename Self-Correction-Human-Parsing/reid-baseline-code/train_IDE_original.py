@@ -28,8 +28,8 @@ from PIL import Image
 # --------
 parser = argparse.ArgumentParser(description='Training')
 parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
-parser.add_argument('--name',default='two_stream_resnet_equal', type=str, help='output model name')
-parser.add_argument('--data_dir',default='../example3/pytorch_ori_and_bg_mask',type=str, help='training dir path')
+parser.add_argument('--name',default='resnet50_market', type=str, help='output model name')
+parser.add_argument('--data_dir',default='../market_original/pytorch',type=str, help='training dir path')
 parser.add_argument('--train_all', action='store_true', help='use all training data' )
 parser.add_argument('--color_jitter', action='store_true', help='use color jitter in training' )
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')

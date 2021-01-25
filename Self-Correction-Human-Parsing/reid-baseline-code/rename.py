@@ -1,12 +1,12 @@
 import os
+from tqdm import tqdm
 def rename(path):
     '''
     modify the file names excluding directories
 
-    author: ruotian
     '''
     FileList = os.listdir(path)
-    for files in FileList:
+    for files in tqdm(FileList):
         oldDirPath = os.path.join(path, files)
         if os.path.isdir(oldDirPath):
             rename(oldDirPath)
@@ -17,4 +17,4 @@ def rename(path):
         os.rename(oldDirPath, newDirPath)
 
 if __name__ == '__main__':
-    rename('../example3_bg_mask/pytorch_bg_mask')
+    rename('../market_bg_mask/pytorch')
