@@ -23,10 +23,10 @@ import two_stream_dataset
 # --------
 parser = argparse.ArgumentParser(description='Training')
 parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
-parser.add_argument('--which_epoch',default='39', type=str, help='0,1,2,3...or last')
-parser.add_argument('--test_dir',default='../market_original/pytorch',type=str, help='./test_data')
-parser.add_argument('--name', default='resnet50_market', type=str, help='save model path')
-parser.add_argument('--cross', default='resnet50_market.mat', type=str, help='corss testing')
+parser.add_argument('--which_epoch',default='29', type=str, help='0,1,2,3...or last')
+parser.add_argument('--test_dir',default='../example3/pytorch_ori_and_bg_mask',type=str, help='./test_data')
+parser.add_argument('--name', default='fore and back', type=str, help='save model path')
+parser.add_argument('--cross', default='fore and back.mat', type=str, help='corss testing')
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
 parser.add_argument('--use_two_stream_resnet', action='store_true', help='use our two stream resnet' )
 
@@ -186,7 +186,7 @@ elif  name == 'duke':
 elif  name[0:7] == 'personX' or name[0:7] == 'PersonX':
    nnn=410
 else:
-   nnn=751
+   nnn=50
 # duke-market 702
 print('-------test-----------')
 
