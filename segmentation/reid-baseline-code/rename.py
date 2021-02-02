@@ -1,12 +1,17 @@
 import os
-from tqdm import tqdm
+import argparse
+
+parser = argparse.ArgumentParser(description='rename')
+parser.add_argument('--dir', default='../market_bg_mask/pytorch', type=str, help='directory')
+opt = parser.parse_args()
+dir=opt.dir
 def rename(path):
     '''
     modify the file names excluding directories
 
     '''
     FileList = os.listdir(path)
-    for files in tqdm(FileList):
+    for files in FileList:
         oldDirPath = os.path.join(path, files)
         if os.path.isdir(oldDirPath):
             rename(oldDirPath)
@@ -17,4 +22,5 @@ def rename(path):
         os.rename(oldDirPath, newDirPath)
 
 if __name__ == '__main__':
-    rename('../market_bg_mask/pytorch')
+    rename(dir)
+    print('The files have been renamed')

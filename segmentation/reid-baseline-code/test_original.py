@@ -23,7 +23,7 @@ import two_stream_dataset
 # --------
 parser = argparse.ArgumentParser(description='Training')
 parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
-parser.add_argument('--which_epoch',default='29', type=str, help='0,1,2,3...or last')
+parser.add_argument('--which_epoch',default='49', type=str, help='0,1,2,3...or last')
 parser.add_argument('--test_dir',default='../example3/pytorch_ori_and_bg_mask',type=str, help='./test_data')
 parser.add_argument('--name', default='fore and back', type=str, help='save model path')
 parser.add_argument('--cross', default='fore and back.mat', type=str, help='corss testing')

@@ -5,12 +5,11 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Prepare')
 parser.add_argument('--name', default='ft_ResNet50', type=str, help='save model path')
+parser.add_argument('--download_path',default='../market',help='the path of your dataset')
 
 opt = parser.parse_args()
 name = opt.name
-# You only need to change this line to your dataset download path background
-#download_path = '/home/sunxx/project/a_data/background/'+name
-download_path = '../market_bg_mask'
+download_path=opt.download_path
 
 if not os.path.isdir(download_path):
     print('please change the download_path')
@@ -20,7 +19,7 @@ if not os.path.isdir(save_path):
     os.mkdir(save_path)
 #-----------------------------------------
 #query
-query_path = download_path + '/query_bg_mask'
+query_path = download_path + '/query'
 query_save_path = download_path + '/pytorch/query'
 if not os.path.isdir(query_save_path):
     os.mkdir(query_save_path)
@@ -38,7 +37,7 @@ for root, dirs, files in os.walk(query_path, topdown=True):
 
 #-----------------------------------------
 #gallery
-gallery_path = download_path + '/bounding_box_test_bg_mask'
+gallery_path = download_path + '/bounding_box_test'
 gallery_save_path = download_path + '/pytorch/gallery'
 if not os.path.isdir(gallery_save_path):
     os.mkdir(gallery_save_path)
@@ -56,7 +55,7 @@ for root, dirs, files in os.walk(gallery_path, topdown=True):
 
 #---------------------------------------
 #train_all
-train_path = download_path + '/bounding_box_train_bg_mask'
+train_path = download_path + '/bounding_box_train'
 train_save_path = download_path + '/pytorch/train_all'
 if not os.path.isdir(train_save_path):
     os.mkdir(train_save_path)
@@ -75,7 +74,7 @@ for root, dirs, files in os.walk(train_path, topdown=True):
 
 #---------------------------------------
 #train_val
-train_path = download_path + '/bounding_box_train_bg_mask'
+train_path = download_path + '/bounding_box_train'
 train_save_path = download_path + '/pytorch/train'
 val_save_path = download_path + '/pytorch/val'
 if not os.path.isdir(train_save_path):
