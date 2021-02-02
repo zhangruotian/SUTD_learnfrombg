@@ -29,7 +29,7 @@ parser.add_argument('--name', default='fore and back', type=str, help='save mode
 parser.add_argument('--cross', default='fore and back.mat', type=str, help='corss testing')
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
 parser.add_argument('--use_two_stream_resnet', action='store_true', help='use our two stream resnet' )
-
+parser.add_argument('--training_set_classes', default=751,type=int, help='the number of classes of training set' )
 opt = parser.parse_args()
 
 str_ids = opt.gpu_ids.split(',')
@@ -179,14 +179,7 @@ query_cam,query_label = get_id(query_path)
 
 ######################################################################
 # Load Collected data Trained model
-if name[0:6] == 'market' or name[0:6] == 'Market':
-   nnn=751
-elif  name == 'duke':
-   nnn=702
-elif  name[0:7] == 'personX' or name[0:7] == 'PersonX':
-   nnn=410
-else:
-   nnn=50
+nnn=opt.training_set_classes
 # duke-market 702
 print('-------test-----------')
 
