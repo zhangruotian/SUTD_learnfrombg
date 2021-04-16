@@ -5,7 +5,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Prepare')
 parser.add_argument('--name', default='ft_ResNet50', type=str, help='save model path')
-parser.add_argument('--download_path',default='../market',help='the path of your dataset')
+parser.add_argument('--download_path',default='/home/ruotian/SUTD_learnfrombg/fg_person_bg_mask',help='the path of your dataset')
 
 opt = parser.parse_args()
 name = opt.name

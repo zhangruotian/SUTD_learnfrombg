@@ -2,7 +2,7 @@ import os
 import argparse
 
 parser = argparse.ArgumentParser(description='rename')
-parser.add_argument('--dir', default='../market_bg_mask/pytorch', type=str, help='directory')
+parser.add_argument('--dir', default='/home/ruotian/SUTD_learnfrombg/fg_person_bg_mask/pytorch', type=str, help='directory')
 opt = parser.parse_args()
 dir=opt.dir
 def rename(path):

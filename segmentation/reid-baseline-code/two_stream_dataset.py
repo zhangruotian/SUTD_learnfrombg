@@ -60,7 +60,6 @@ if __name__ == '__main__':
 
     transform_train_list = [
         transforms.Resize((384,192), interpolation=3),
-        transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]
@@ -78,9 +77,17 @@ if __name__ == '__main__':
         'bg': transforms.Compose(transform_bg_list),
         'val': transforms.Compose(transform_val_list),
     }
-    data = TwoStreamDataset('../example3/pytorch_ori_and_bg_mask/train',data_transforms['train'], data_transforms['bg'])
+    data = TwoStreamDataset('../background/query',data_transforms['train'], data_transforms['bg'])
     print(data[0][0][1])
+    print(data[1])
+    print(data[2])
+    print(data[3])
+
     b=np.array(data[0][0][1]*50000)
     b=b.squeeze()
 
-    cv2.imwrite('b.png',b)
+    # cv2.imwrite('b.png',b)
+    # import matplotlib.pyplot as plt
+    # a=plt.imread("/home/ruotian/SUTD_learnfrombg/segmentation/background/query/0113/0113_c4s1_11_bg.jpg")
+    # b=plt.imread("/home/ruotian/SUTD_learnfrombg/segmentation/background/0113_c4s1_11.jpg")
+    # print(a.all()==b.all())

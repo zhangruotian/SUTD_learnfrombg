@@ -22,14 +22,14 @@ import two_stream_dataset
 # Options
 # --------
 parser = argparse.ArgumentParser(description='Training')
-parser.add_argument('--gpu_ids',default='0', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
+parser.add_argument('--gpu_ids',default='1', type=str,help='gpu_ids: e.g. 0  0,1,2  0,2')
 parser.add_argument('--which_epoch',default='49', type=str, help='0,1,2,3...or last')
-parser.add_argument('--test_dir',default='../example3/pytorch_ori_and_bg_mask',type=str, help='./test_data')
-parser.add_argument('--name', default='fore and back', type=str, help='save model path')
-parser.add_argument('--cross', default='fore and back.mat', type=str, help='corss testing')
+parser.add_argument('--test_dir',default='../fg_person/pytorch',type=str, help='./test_data')
+parser.add_argument('--name', default='fg_person_baseline', type=str, help='save model path')
+parser.add_argument('--cross', default='fg_person_baseline.mat', type=str, help='corss testing')
 parser.add_argument('--batchsize', default=32, type=int, help='batchsize')
 parser.add_argument('--use_two_stream_resnet', action='store_true', help='use our two stream resnet' )
-parser.add_argument('--training_set_classes', default=751,type=int, help='the number of classes of training set' )
+parser.add_argument('--training_set_classes', default=318,type=int, help='the number of classes of training set' )
 opt = parser.parse_args()
 
 str_ids = opt.gpu_ids.split(',')

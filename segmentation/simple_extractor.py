@@ -57,9 +57,9 @@ def get_arguments():
 
     parser.add_argument("--dataset", type=str, default='lip', choices=['lip', 'atr', 'pascal'])
     parser.add_argument("--model-restore", type=str, default='checkpoints/lip.pth', help="restore pretrained model parameters.")
-    parser.add_argument("--gpu", type=str, default='0', help="choose gpu device.")
-    parser.add_argument("--input-dir", type=str, default='market/bounding_box_test', help="path of input image folder.")
-    parser.add_argument("--output-dir", type=str, default='market_bg_mask/bounding_box_test_bg_mask', help="path of output image folder.")
+    parser.add_argument("--gpu", type=str, default='2', help="choose gpu device.")
+    parser.add_argument("--input-dir", type=str, default='/home/ruotian/SUTD_learnfrombg/fg_person/query', help="path of input image folder.")
+    parser.add_argument("--output-dir", type=str, default='/home/ruotian/SUTD_learnfrombg/fg_person_bg_mask/query', help="path of output image folder.")
     parser.add_argument("--logits", action='store_true', default=False, help="whether to save the logits.")
 
     return parser.parse_args()
